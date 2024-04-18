@@ -269,9 +269,14 @@
                 audioElement.id = 'localAudio';
                 audioElement.autoplay = true;
                 audioElement.srcObject = localStream;
+                // Add condition to exclude local audio from being played
+                if (audioTracks.length > 0 && !audioTracks[0].muted) {
+                    audioElement.muted = true;
+                }
                 document.body.appendChild(audioElement);
             }
         }
+
 
         function stopLocalStream() {
             if (localStream) {
