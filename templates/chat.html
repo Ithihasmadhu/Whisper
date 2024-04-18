@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Whisper Chat - Chat Room</title>
+    <style>
+        /* Your CSS styles */
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Lucida Console', Monaco, monospace;
+            background-color: #000;
+            color: #0f0;
+            overflow: hidden;
+        }
+        
+        .container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%;
+            height: 80%;
+            background-color: #000;
+            border: 2px solid #0f0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .chat-box {
+            height: 80%;
+            overflow-y: scroll;
+            padding: 20px;
+        }
+        
+        .message {
+            margin-bottom: 10px;
+        }
+        
+        .message .sender {
+            color: #0f0;
+            font-weight: bold;
+        }
+        
+        .message .content {
+            color: #0f0;
+        }
+        
+        .input-box {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: #000;
+            padding: 10px;
+        }
+        
+        input[type="text"] {
+            width: calc(100% - 80px);
+            padding: 8px;
+            margin-right: 10px;
+            background-color: #000;
+            border: 1px solid #0f0;
+            color: #0f0;
+            border-radius: 5px;
+            box-sizing: border-box;
+            font-family: 'Lucida Console', Monaco, monospace;
+        }
+        
+        input[type="submit"] {
+            padding: 8px 20px;
+            background-color: #0f0;
+            border: none;
+            color: #000;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+            font-family: 'Lucida Console', Monaco, monospace;
+        }
+        
+        input[type="submit"]:hover {
+            background-color: #090;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="chat-box" id="chat-box"></div>
+        <div class="input-box">
+            <form id="message-form">
+                <input type="hidden" id="username" value="{{ username }}">
+                <input type="hidden" id="room" value="{{ room }}">
+                <input type="text" id="message" placeholder="Type your message..." required autocomplete="off">
+                <input type="submit" value="Send">
+            </form>
+        </div>
+    </div>
+
+    <script>
+        var ws = new WebSocket('wss://stirring-peach-twill.glitch.me');
+
+        // Get username and room ID from URL query parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const username = urlParams.get('username');
+        const room = urlParams.get('room');
+
+        ws.onopen = function() {
+            console.log('WebSocket connection established');
+            // Join the room when the connection is established
+            joinRoom();
+        };
+
+        // When receiving a message from the server
+        ws.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            const chatBox = document.getElementById('chat-box');
+            
+            switch (data.type) {
+                case 'receiveMessage':
+                    // Handle incoming message
+                    const messageElement = document.createElement('div');
+                    messageElement.classList.add('message');
+                    messageElement.innerHTML = '<span class="sender">' + data.username + ': </span>' + '<span class="content">' + data.message + '</span>';
+                    chatBox.appendChild(messageElement);
+                    chatBox.scrollTop = chatBox.scrollHeight;
+                    break;
+                case 'userJoined':
+                    // Handle user joining the room
+                    displaySystemMessage(data.username + ' joined the room.');
+                    break;
+                case 'userLeft':
+                    // Handle user leaving the room
+                    displaySystemMessage(data.username + ' left the room.');
+                    break;
+                default:
+                    console.log('Unknown message type:', data.type);
+            }
+        };
+
+        // When the message form is submitted
+        document.getElementById('message-form').onsubmit = function(e) {
+            e.preventDefault(); // Prevent form submission
+
+            // Get message from the form
+            const message = document.getElementById('message').value;
+            
+            // Send message to the server
+            ws.send(JSON.stringify({ type: 'sendMessage', username: username, message: message, room: room }));
+
+            // Clear the input field
+            document.getElementById('message').value = '';
+        };
+
+        function joinRoom() {
+            // Send join message to the server
+            ws.send(JSON.stringify({ type: 'join', username: username, room: room }));
+        }
+
+        function displaySystemMessage(message) {
+            const chatBox = document.getElementById('chat-box');
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('message');
+            messageElement.classList.add('system-message');
+            messageElement.textContent = message;
+            chatBox.appendChild(messageElement);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+    </script>
+</body>
+</html>
