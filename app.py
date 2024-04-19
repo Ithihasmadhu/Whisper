@@ -15,4 +15,3 @@ def chat():
     # Assuming you're retrieving the room ID from somewhere, replace 'room_id' with your actual variable
     room_id = request.args.get('room')
     return render_template('chat.html', room=room_id)
-
